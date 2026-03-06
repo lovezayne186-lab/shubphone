@@ -1,0 +1,333 @@
+#mine-view {
+    background-color: #f7f7f7;
+    min-height: 100%;
+    padding: calc(16px + env(safe-area-inset-top, 0px)) 0 24px;
+    box-sizing: border-box;
+    position: relative;
+}
+
+.mine-root {
+    min-height: 100%;
+}
+
+.mine-header {
+    background-color: #ffffff;
+    display: flex;
+    align-items: center;
+    padding: 20px 16px;
+    margin-bottom: 12px;
+}
+
+.mine-header-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    background-color: #e5e5e5;
+    overflow: hidden;
+    flex-shrink: 0;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: transform 120ms ease;
+}
+
+.mine-header-avatar:active {
+    transform: scale(0.97);
+}
+
+.mine-header-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.mine-header-info {
+    margin-left: 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.mine-header-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111111;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.mine-header-signature {
+    font-size: 12px;
+    color: #888888;
+    margin-top: 6px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.mine-avatar-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.mine-edit-overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: calc(18px + env(safe-area-inset-top, 0px)) 18px calc(18px + env(safe-area-inset-bottom, 0px));
+    box-sizing: border-box;
+    background: rgba(0, 0, 0, 0.18);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 30;
+}
+
+.mine-edit-card {
+    width: min(340px, calc(100% - 24px));
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18);
+    padding: 18px 16px 14px;
+    box-sizing: border-box;
+}
+
+.mine-edit-title {
+    font-size: 16px;
+    font-weight: 650;
+    color: #111;
+    letter-spacing: 0.02em;
+    margin-bottom: 12px;
+    text-align: left;
+}
+
+.mine-edit-input,
+.mine-edit-textarea {
+    width: 100%;
+    border-radius: 14px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: rgba(247, 247, 247, 0.92);
+    color: #111;
+    font-size: 14px;
+    padding: 12px 12px;
+    box-sizing: border-box;
+    outline: none;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.mine-edit-textarea {
+    resize: none;
+    line-height: 1.4;
+    min-height: 78px;
+}
+
+.mine-edit-actions {
+    margin-top: 14px;
+    display: flex;
+    gap: 10px;
+}
+
+.mine-edit-btn {
+    flex: 1;
+    height: 42px;
+    border-radius: 14px;
+    font-size: 14px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    background: rgba(255, 255, 255, 0.9);
+    color: #111;
+    cursor: pointer;
+    transition: transform 120ms ease, background 120ms ease;
+}
+
+.mine-edit-btn:active {
+    transform: scale(0.98);
+}
+
+.mine-edit-save {
+    background: #111;
+    color: #fff;
+    border-color: rgba(0, 0, 0, 0.12);
+}
+
+.mine-edit-save:active {
+    background: #000;
+}
+
+.mine-list-section {
+    margin: 8px 12px 0;
+    background-color: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.mine-list-item {
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    height: 56px;
+    font-size: 15px;
+    color: #111111;
+}
+
+.mine-list-item:active {
+    background-color: #f0f0f0;
+}
+
+.mine-item-icon {
+    width: 24px;
+    display: flex;
+    justify-content: center;
+    margin-right: 16px;
+    color: #333333;
+    font-size: 20px;
+}
+
+.mine-item-text {
+    flex: 1;
+}
+
+.mine-item-arrow {
+    font-size: 18px;
+    color: #c0c0c0;
+}
+
+.mine-list-section + .mine-list-section {
+    margin-top: 12px;
+}
+
+.mine-favorites-panel {
+    position: absolute;
+    inset: 0;
+    background: #f7f7f7;
+    padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
+}
+
+.mine-favorites-header {
+    height: 52px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+.mine-favorites-back {
+    width: 40px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    font-size: 24px;
+    color: #111;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: pointer;
+}
+
+.mine-favorites-title {
+    flex: 1;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: #111;
+}
+
+.mine-favorites-spacer {
+    width: 40px;
+    height: 36px;
+}
+
+.mine-favorites-list {
+    padding: 12px;
+    box-sizing: border-box;
+}
+
+.mine-favorites-empty {
+    padding: 60px 12px;
+    text-align: center;
+    color: #9a9a9a;
+    font-size: 14px;
+}
+
+.mine-fav-item {
+    background: #fff;
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    gap: 10px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.04);
+}
+
+.mine-fav-item + .mine-fav-item {
+    margin-top: 10px;
+}
+
+.mine-fav-item:active {
+    transform: scale(0.98);
+}
+
+.mine-fav-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: #eaeaea;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.mine-fav-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.mine-fav-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.mine-fav-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.mine-fav-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mine-fav-time {
+    font-size: 12px;
+    color: #9a9a9a;
+    flex-shrink: 0;
+}
+
+.mine-fav-content {
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 1.35;
+    color: #444;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
