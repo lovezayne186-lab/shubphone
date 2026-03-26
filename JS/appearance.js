@@ -17,6 +17,221 @@ const DEFAULT_APP_LIST = [
     { name: "外观", id: "appearance", iconClass: "fas fa-palette" }
 ];
 
+const DESKTOP_APPEARANCE_EXPORT_MARKER = '__shubao_desktop_appearance__';
+
+function collectLocalStorageByPrefix(prefix) {
+    const result = {};
+    const normalizedPrefix = String(prefix || '');
+    if (!normalizedPrefix) return result;
+    try {
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (!key || key.indexOf(normalizedPrefix) !== 0) continue;
+            const value = localStorage.getItem(key);
+            if (value != null) result[key] = value;
+        }
+    } catch (e) { }
+    return result;
+}
+
+async function collectLocalForageByPrefix(prefix) {
+    const result = {};
+    const normalizedPrefix = String(prefix || '');
+    const hasForage = !!(window.localforage && typeof window.localforage.keys === 'function' && typeof window.localforage.getItem === 'function');
+    if (!normalizedPrefix || !hasForage) return result;
+    try {
+        const keys = await window.localforage.keys();
+        const matchedKeys = (keys || []).filter(function (key) {
+            return key && String(key).indexOf(normalizedPrefix) === 0;
+        });
+        for (let i = 0; i < matchedKeys.length; i++) {
+            const key = String(matchedKeys[i]);
+            try {
+                const value = await window.localforage.getItem(key);
+                if (value !== null && value !== undefined) {
+                    result[key] = value;
+                }
+            } catch (e) { }
+        }
+    } catch (e) { }
+    return result;
+}
+
+function applyWidgetImageToElement(elementId, src) {
+    const imgEl = document.getElementById(String(elementId || ''));
+    if (!imgEl || !src) return;
+    imgEl.src = src;
+    imgEl.style.opacity = '1';
+    imgEl.style.display = 'block';
+    if (imgEl.previousElementSibling && imgEl.previousElementSibling.classList) {
+        if (imgEl.previousElementSibling.classList.contains('main-widget-placeholder')) {
+            imgEl.previousElementSibling.style.display = 'none';
+        }
+    }
+    if (imgEl.nextElementSibling && imgEl.nextElementSibling.classList) {
+        if (imgEl.nextElementSibling.classList.contains('upload-hint')) {
+            imgEl.nextElementSibling.style.display = 'none';
+        }
+        if (imgEl.nextElementSibling.classList.contains('upload-hint-text')) {
+            imgEl.nextElementSibling.style.display = 'none';
+        }
+    }
+}
+
+async function restoreWidgetImagesToScreen() {
+    const widgetImages = await collectLocalForageByPrefix('widget_img_');
+    const widgetSaves = collectLocalStorageByPrefix('widget_save_');
+    Object.keys(widgetImages).forEach(function (storageKey) {
+        const elementId = String(storageKey).slice('widget_img_'.length);
+        applyWidgetImageToElement(elementId, widgetImages[storageKey]);
+    });
+    Object.keys(widgetSaves).forEach(function (storageKey) {
+        const elementId = String(storageKey).slice('widget_save_'.length);
+        const imgEl = document.getElementById(elementId);
+        if (!imgEl || imgEl.getAttribute('src')) return;
+        applyWidgetImageToElement(elementId, widgetSaves[storageKey]);
+    });
+}
+
+function removeLocalStorageByPrefix(prefix) {
+    const normalizedPrefix = String(prefix || '');
+    if (!normalizedPrefix) return;
+    const keysToRemove = [];
+    try {
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.indexOf(normalizedPrefix) === 0) {
+                keysToRemove.push(key);
+            }
+        }
+    } catch (e) { }
+    keysToRemove.forEach(function (key) {
+        try { localStorage.removeItem(key); } catch (e) { }
+    });
+}
+
+async function replaceLocalForageByPrefix(prefix, entries) {
+    const normalizedPrefix = String(prefix || '');
+    const hasForage = !!(window.localforage && typeof window.localforage.keys === 'function');
+    if (!normalizedPrefix || !hasForage) return;
+    try {
+        const keys = await window.localforage.keys();
+        const removes = (keys || []).filter(function (key) {
+            return key && String(key).indexOf(normalizedPrefix) === 0;
+        }).map(function (key) {
+            return window.localforage.removeItem(key).catch(function () { });
+        });
+        await Promise.all(removes);
+    } catch (e) { }
+    const source = entries && typeof entries === 'object' ? entries : {};
+    const writeKeys = Object.keys(source);
+    for (let i = 0; i < writeKeys.length; i++) {
+        const key = writeKeys[i];
+        if (!key || String(key).indexOf(normalizedPrefix) !== 0) continue;
+        try {
+            await window.localforage.setItem(key, source[key]);
+        } catch (e) { }
+    }
+}
+
+function buildDesktopAppearanceSnapshot() {
+    const ls = {
+        show_status_info: localStorage.getItem('show_status_info'),
+        icon_follow_wallpaper: localStorage.getItem('icon_follow_wallpaper'),
+        icon_custom_color: localStorage.getItem('icon_custom_color'),
+        widgetSaves: collectLocalStorageByPrefix('widget_save_')
+    };
+    const apps = Array.isArray(window.appList)
+        ? window.appList.map(function (item) {
+            if (!item || typeof item !== 'object') return null;
+            return Object.assign({}, item);
+        }).filter(Boolean)
+        : [];
+    return Promise.resolve().then(async function () {
+        let wallpaper = null;
+        if (typeof localforage !== 'undefined' && localforage && typeof localforage.getItem === 'function') {
+            try {
+                wallpaper = await localforage.getItem('desktopWallpaper');
+            } catch (e) { wallpaper = null; }
+        }
+        const widgetImages = await collectLocalForageByPrefix('widget_img_');
+        return {
+            ls: ls,
+            lf: {
+                desktopAppList: apps,
+                desktopWallpaper: wallpaper,
+                widgetImages: widgetImages
+            }
+        };
+    });
+}
+
+function downloadDesktopAppearanceFile(filename, text) {
+    const blob = new Blob([String(text || '')], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(function () {
+        try { URL.revokeObjectURL(url); } catch (e) { }
+    }, 1000);
+}
+
+function syncDesktopStatusBarVisibility() {
+    const showStatus = localStorage.getItem('show_status_info') !== 'false';
+    if (showStatus) document.body.classList.remove('hide-status-info');
+    else document.body.classList.add('hide-status-info');
+}
+
+function applyDesktopWallpaperToScreen(wallpaper) {
+    const screen = document.querySelector('.screen');
+    if (!screen) return;
+    const src = String(wallpaper || '').trim();
+    if (src) {
+        screen.style.backgroundImage = `url('${src}')`;
+        screen.style.backgroundSize = 'cover';
+        screen.style.backgroundPosition = 'center';
+    } else {
+        screen.style.backgroundImage = '';
+        screen.style.backgroundSize = '';
+        screen.style.backgroundPosition = '';
+    }
+    if (typeof window.updateThemeFromWallpaper === 'function') {
+        window.updateThemeFromWallpaper(src);
+    }
+}
+
+async function refreshDesktopAppearanceUIAfterImport() {
+    syncDesktopStatusBarVisibility();
+    if (typeof window.renderApps === 'function') {
+        try { window.renderApps(); } catch (e) { }
+    }
+    let wallpaper = null;
+    if (typeof localforage !== 'undefined' && localforage && typeof localforage.getItem === 'function') {
+        try {
+            wallpaper = await localforage.getItem('desktopWallpaper');
+        } catch (e) { wallpaper = null; }
+    }
+    applyDesktopWallpaperToScreen(wallpaper);
+    await restoreWidgetImagesToScreen();
+    if (typeof window.initWidgetState === 'function') {
+        try { await window.initWidgetState(); } catch (e) { }
+    }
+    const container = document.getElementById('appearance-app');
+    if (container) renderAppearanceUI(container);
+}
+
+function safeParseAppearanceJson(text) {
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        return null;
+    }
+}
+
 // 1. 打开外观 App（现在通过 app-window 统一承载）
 function openAppearanceApp() {
     const container = document.getElementById('appearance-app');
@@ -152,6 +367,16 @@ function renderAppearanceUI(container) {
                 <div id="app-icon-manager-panel" style="display:${iconManagerOpen ? 'block' : 'none'}; margin-top:12px;">
                     ${appListHTML}
                 </div>
+            </div>
+
+            <div class="setting-card" style="margin-top:20px;">
+                <h3 style="margin-top:0;">桌面外观导出 / 导入 (JSON)</h3>
+                <p style="font-size:12px; color:#666; margin:0 0 12px 0;">只包含桌面外观相关内容：顶部状态栏、桌面壁纸、桌面图标名称与图标、图标主题色设置，以及桌面小组件图片。</p>
+                <div style="display:flex; gap:10px;">
+                    <button type="button" class="mini-btn" style="flex:1;" onclick="exportDesktopAppearanceJson()">导出 JSON</button>
+                    <button type="button" class="mini-btn" style="flex:1;" onclick="triggerImportDesktopAppearanceJson()">导入 JSON</button>
+                </div>
+                <input type="file" id="appearance-import-json" accept="application/json,.json" style="display:none;" onchange="importDesktopAppearanceFromInput(this)">
             </div>
 
             <div class="setting-card" style="margin-top:20px; border:1px solid #ff3b30; background:#fff5f5;">
@@ -479,6 +704,104 @@ function setWallpaperByUrl() {
     }
 }
 
+async function exportDesktopAppearanceJson() {
+    try {
+        const snapshot = await buildDesktopAppearanceSnapshot();
+        const payload = {
+            __shubao_desktop_appearance__: 1,
+            createdAt: new Date().toISOString(),
+            data: snapshot
+        };
+        const stamp = payload.createdAt.replace(/[:.]/g, '-');
+        downloadDesktopAppearanceFile('shubao-desktop-appearance-' + stamp + '.json', JSON.stringify(payload, null, 2));
+        alert('✅ 已导出桌面外观 JSON');
+    } catch (e) {
+        console.error(e);
+        alert('❌ 导出失败：' + (e && e.message ? e.message : '未知错误'));
+    }
+}
+
+function triggerImportDesktopAppearanceJson() {
+    const input = document.getElementById('appearance-import-json');
+    if (!input) {
+        alert('找不到导入控件，请重新打开外观设置页面');
+        return;
+    }
+    input.value = '';
+    input.click();
+}
+
+async function importDesktopAppearanceFromInput(fileInput) {
+    try {
+        const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+        if (!file) return;
+        const text = await file.text();
+        const json = safeParseAppearanceJson(text);
+        if (!json || typeof json !== 'object') {
+            alert('❌ 导入失败：文件不是有效 JSON');
+            return;
+        }
+        if (json[DESKTOP_APPEARANCE_EXPORT_MARKER] !== 1) {
+            alert('❌ 导入失败：不是桌面外观导出文件');
+            return;
+        }
+        const data = json.data && typeof json.data === 'object' ? json.data : null;
+        const ls = data && data.ls && typeof data.ls === 'object' ? data.ls : null;
+        const lf = data && data.lf && typeof data.lf === 'object' ? data.lf : null;
+        if (!ls || !lf) {
+            alert('❌ 导入失败：文件结构不正确');
+            return;
+        }
+        const ok = confirm('⚠️ 将覆盖当前桌面外观设置（状态栏、壁纸、图标、主题色、小组件图片）。\n\n建议先导出一份当前桌面外观备份。\n\n确定继续吗？');
+        if (!ok) return;
+
+        const lsKeys = ['show_status_info', 'icon_follow_wallpaper', 'icon_custom_color'];
+        for (let i = 0; i < lsKeys.length; i++) {
+            const key = lsKeys[i];
+            if (Object.prototype.hasOwnProperty.call(ls, key) && ls[key] != null) {
+                localStorage.setItem(key, String(ls[key]));
+            } else {
+                localStorage.removeItem(key);
+            }
+        }
+
+        removeLocalStorageByPrefix('widget_save_');
+        const widgetSaves = ls.widgetSaves && typeof ls.widgetSaves === 'object' ? ls.widgetSaves : {};
+        Object.keys(widgetSaves).forEach(function (key) {
+            if (!key || String(key).indexOf('widget_save_') !== 0) return;
+            try {
+                localStorage.setItem(key, String(widgetSaves[key]));
+            } catch (e) { }
+        });
+
+        if (Array.isArray(lf.desktopAppList)) {
+            window.appList = lf.desktopAppList.map(function (item) {
+                return item && typeof item === 'object' ? Object.assign({}, item) : item;
+            }).filter(Boolean);
+            if (typeof localforage !== 'undefined' && localforage && typeof localforage.setItem === 'function') {
+                await localforage.setItem('desktopAppList', window.appList);
+            }
+        }
+
+        const wallpaper = lf.desktopWallpaper != null ? lf.desktopWallpaper : null;
+        if (typeof localforage !== 'undefined' && localforage && typeof localforage.setItem === 'function') {
+            if (wallpaper) await localforage.setItem('desktopWallpaper', wallpaper);
+            else await localforage.removeItem('desktopWallpaper');
+            await replaceLocalForageByPrefix('widget_img_', lf.widgetImages);
+        }
+
+        await refreshDesktopAppearanceUIAfterImport();
+        alert('✅ 桌面外观已导入');
+    } catch (e) {
+        console.error(e);
+        alert('❌ 导入失败：' + (e && e.message ? e.message : '未知错误'));
+    } finally {
+        try {
+            if (fileInput) fileInput.value = '';
+        } catch (e) { }
+    }
+}
+
 // 5. 新增：开机时恢复桌面数据（增强版：带详细日志）
 function initDesktopState() {
     console.log("=== 开始恢复桌面数据 ===");
@@ -648,5 +971,8 @@ window.toggleStatusBar = toggleStatusBar;
 window.initDesktopState = initDesktopState;
 window.editAppName = editAppName;
 window.saveAppName = saveAppName;
+window.exportDesktopAppearanceJson = exportDesktopAppearanceJson;
+window.triggerImportDesktopAppearanceJson = triggerImportDesktopAppearanceJson;
+window.importDesktopAppearanceFromInput = importDesktopAppearanceFromInput;
 window.resetSingleApp = resetSingleApp;
 window.resetFactorySettings = resetFactorySettings;
