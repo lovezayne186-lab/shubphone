@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>情侣空间</title>
+    <script src="https://unpkg.com/localforage@1.10.0/dist/localforage.min.js"></script>
+    <link rel="stylesheet" href="../CSS/couple-space.css?v=3">
+    <script src="../JS/couplespace/qa_data.js"></script>
+    <script src="../JS/couplespace/coupleQA.js"></script>
+    <script src="../JS/couplespace/qlkj-setting.js"></script>
+</head>
+<body>
+
+    <div class="couple-app-root">
+
+    <!-- 1. Fixed Header -->
+    <header class="fixed-header-wrapper" id="fixed-header">
+        <div class="header-bg-layer" onclick="triggerBgChange()">
+            <img id="header-bg-img" src="https://images.unsplash.com/photo-1518568814500-bf0f8d125f46?q=80&w=2500&auto=format&fit=crop" class="header-bg-img" alt="Background">
+            <div class="header-mask"></div>
+        </div>
+
+        <div class="header-card-layer">
+            <div class="card-actions">
+                <div class="action-btn back-icon" onclick="goBack()">
+                    ＜
+                </div>
+                <div class="action-btn more-icon" onclick="openCoupleMoreMenu()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                </div>
+            </div>
+
+            <div class="avatar-group-wrapper">
+                <div class="avatar-group">
+                    <img id="avatar-user" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" class="avatar user" alt="User" onclick="triggerAvatarChange('user')">
+                    <img id="avatar-role" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka" class="avatar role" alt="Role" onclick="triggerAvatarChange('role')">
+                </div>
+            </div>
+
+            <div class="text-group">
+                <!-- 新增：名字行 -->
+                <div class="names-row">
+                    <span id="name-user">User</span>
+                    <span class="heart-icon-small">♥</span>
+                    <span id="name-role">Role</span>
+                </div>
+                
+                <div class="main-title">在一起已经 <span id="days-count">--</span> 天</div>
+                <div class="sub-title" id="anniversary-label" role="button" tabindex="0">--</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. Main Content (Center Interaction) -->
+    <main class="main-content">
+        <section class="page page-home" data-page="home">
+            <div class="qa-entry-float">
+                <button class="qa-entry-btn" type="button" onclick="openCoupleQAModal()">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
+                </button>
+                <div class="qa-entry-label">情侣问答</div>
+            </div>
+            <div class="diffused-circle" id="miss-btn">
+                <span class="miss-text">想你 +1</span>
+            </div>
+            
+            <div class="stats-text">
+                <div>今天，我 想 你 <span class="stats-count" id="miss-count-user">0</span> 次</div>
+                <div>今天，你 想 我 <span class="stats-count" id="miss-count-role">0</span> 次</div>
+            </div>
+        </section>
+
+        <section class="page page-mood" data-page="mood" hidden>
+            <div class="mood-content-wrapper">
+                <div class="mood-calendar" id="mood-calendar"></div>
+                <div id="diary-note-container"></div>
+            </div>
+        </section>
+
+        <!-- 记录页 -->
+        <section class="page page-record" data-page="record" hidden>
+            <div class="record-container">
+                <div class="bento-grid">
+                    <!-- 1. 恋爱相册 -->
+                    <div class="bento-item love-album" onclick="window.location.href='couple-album.html'">
+                        <div class="love-album-text">
+                            <div class="subtitle">MEMORIES</div>
+                            <div class="title">恋爱相册</div>
+                            <div class="desc">定格甜蜜瞬间吧</div>
+                        </div>
+                        <div class="love-album-images">
+                            <div class="polaroid p1"></div>
+                            <div class="polaroid p2"></div>
+                            <div class="polaroid p3"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 2. 并排两张方卡 -->
+                    <div class="bento-row">
+                        <div class="bento-item bento-square wishlist" onclick="window.location.href='couple-wishlist.html'">
+                            <div class="icon-wrap">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                            </div>
+                            <div class="card-content">
+                                <div class="title">心愿单</div>
+                                <div class="subtitle">WISHLIST</div>
+                            </div>
+                            <div class="bottom-text">⭐ 留下共同心愿</div>
+                        </div>
+                        
+                        <div class="bento-item bento-square future-plans" onclick="alert('即将开放：未来规划')">
+                            <div class="icon-wrap">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"></path><path d="M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
+                            </div>
+                            <div class="card-content">
+                                <div class="title">未来规划</div>
+                                <div class="subtitle">FUTURE</div>
+                            </div>
+                            <div class="bottom-text timeline">
+                                <span class="dot"></span>
+                                <span>看看他的规划</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 3. Fixed Bottom Dock -->
+    <nav class="dock-bar">
+        <!-- 1. 首页 -->
+        <div class="dock-item active" data-tab="home">
+            <div class="dock-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            </div>
+            <span class="dock-text">首页</span>
+        </div>
+        
+        <!-- 2. 心情 -->
+        <div class="dock-item" data-tab="mood">
+            <div class="dock-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
+            </div>
+            <span class="dock-text">心情</span>
+        </div>
+
+        <!-- 3. 空间 (Center Button) -->
+        <div class="dock-item-center" data-tab="home">
+            <div class="center-icon">
+                <!-- 纯色填充的心 -->
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+            </div>
+        </div>
+
+        <!-- 4. 记录 -->
+        <div class="dock-item" data-tab="record">
+            <div class="dock-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            </div>
+            <span class="dock-text">记录</span>
+        </div>
+
+        <!-- 5. 情书 -->
+        <div class="dock-item" data-tab="letter">
+            <div class="dock-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            </div>
+            <span class="dock-text">情书</span>
+        </div>
+    </nav>
+
+    <div class="couple-qa-modal" id="couple-qa-modal">
+        <div class="couple-qa-header">
+            <button class="qa-close-btn" type="button" onclick="closeCoupleQAModal()">✕</button>
+            <div class="couple-qa-title">今日问答</div>
+            <div class="qa-header-placeholder"></div>
+        </div>
+        <div class="qa-mini-toast" id="qa-mini-toast" hidden></div>
+        <div class="qa-printer-wrapper">
+            <div class="qa-printer-body">
+                <button class="qa-print-btn" type="button" id="qa-print-btn" onclick="handleQaPrint()">PUSH</button>
+                <div class="qa-printer-slot"></div>
+            </div>
+            <div class="qa-paper-container">
+                <div class="qa-paper" id="qa-paper">
+                    <div class="qa-date" id="qa-date"></div>
+                    <div class="qa-text" id="qa-text"></div>
+                </div>
+            </div>
+        </div>
+        <div class="qa-interaction-area" id="qa-interaction-area">
+            <div class="qa-my-card">
+                <div class="qa-my-header">
+                    <img class="qa-my-avatar" id="qa-user-avatar" alt="">
+                    <div class="qa-my-name" id="qa-user-name"></div>
+                </div>
+                <textarea class="qa-my-input" id="qa-my-input" placeholder="写下你的真实想法..."></textarea>
+                <div class="qa-my-display" id="qa-my-display"></div>
+                <button class="qa-submit-btn" type="button" id="qa-submit-btn" onclick="submitCoupleQaAnswer()">确认投递</button>
+            </div>
+            <div class="qa-partner-card locked" id="qa-partner-card">
+                <div class="qa-lock-overlay">
+                    <svg class="qa-lock-icon" viewBox="0 0 24 24">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <div class="qa-lock-text" id="qa-lock-text">回答后解锁对方心声</div>
+                </div>
+                <div class="qa-partner-header">
+                    <img class="qa-partner-avatar" id="qa-partner-avatar" alt="">
+                    <div class="qa-partner-name" id="qa-partner-name">Ta 的回答</div>
+                </div>
+                <div class="qa-partner-content" id="qa-partner-content"></div>
+            </div>
+            <div class="qa-tip-text" id="qa-tip-text"></div>
+        </div>
+    </div>
+
+    <div class="secret-space-modal" id="secret-space-modal" hidden>
+        <div class="secret-space-panel" role="dialog" aria-modal="true">
+            <div class="secret-space-header">
+                <button class="secret-space-icon-btn" type="button" data-action="close-secret" aria-label="返回">＜</button>
+                <div class="secret-space-title">秘密空间</div>
+                <button class="secret-space-icon-btn" type="button" aria-label="更多">...</button>
+            </div>
+            <div class="secret-space-main" id="secret-space-main">
+                <div id="secret-timeline-container"></div>
+            </div>
+            <div class="secret-space-footer">
+                <input class="secret-space-input" id="secret-space-input" type="text" placeholder="说点悄悄话…" autocomplete="off">
+                <button class="secret-space-btn secret-space-btn-secondary secret-space-heart-btn" type="button" data-action="receive-secret" aria-label="爱心">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                </button>
+                <button class="secret-space-btn secret-space-btn-primary" type="button" data-action="send-secret">message</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 隐藏的文件输入 -->
+    <input type="file" id="bg-input" accept="image/*">
+    <input type="file" id="avatar-user-input" accept="image/*">
+    <input type="file" id="avatar-role-input" accept="image/*">
+    <input type="file" id="diary-image-input" accept="image/*" multiple>
+    <input type="date" id="anniversary-input" style="position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;">
+
+    <div class="mood-modal" id="mood-modal" hidden>
+        <div class="mood-modal-mask" id="mood-modal-mask"></div>
+        <div class="mood-modal-card" role="dialog" aria-modal="true">
+            <div id="mood-modal-content"></div>
+        </div>
+    </div>
+
+    <div class="couple-menu-modal" id="couple-menu-modal" hidden>
+        <div class="couple-menu-mask" id="couple-menu-mask"></div>
+        <div class="couple-menu-card" role="dialog" aria-modal="true">
+            <div class="couple-menu-content" id="couple-menu-content"></div>
+        </div>
+    </div>
+
+    <div class="diary-edit-modal" id="diary-edit-modal" hidden>
+        <div class="diary-edit-mask" id="diary-edit-mask"></div>
+        <div class="diary-edit-card">
+            <div class="diary-edit-title">要修改心情日记吗？</div>
+            <div class="diary-edit-actions">
+                <button class="diary-edit-btn" type="button" data-action="cancel-edit-diary">取消</button>
+                <button class="diary-edit-btn diary-edit-btn-primary" type="button" data-action="confirm-edit-diary">确定</button>
+            </div>
+        </div>
+    </div>
+
+    </div>
+
+    
+    <script src="../JS/couplespace/couple-space.js?v=3"></script>
+</body>
+</html>

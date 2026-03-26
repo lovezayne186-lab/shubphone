@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>恋爱相册</title>
+    <script src="https://unpkg.com/localforage@1.10.0/dist/localforage.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --accent-color: #ff8fb1;
+            --text-dark: #333;
+            --text-gray: #999;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            background-color: var(--bg-color);
+            font-family: var(--font-family);
+            color: var(--text-dark);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-top: calc(env(safe-area-inset-top, 40px) + 74px);
+            padding-bottom: 110px;
+        }
+        .top-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: calc(env(safe-area-inset-top, 40px) + 58px);
+            padding-top: env(safe-area-inset-top, 40px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-color);
+            z-index: 100;
+        }
+        .back-btn {
+            position: absolute;
+            left: 18px;
+            bottom: 14px;
+            font-size: 24px;
+            color: var(--text-dark);
+            text-decoration: none;
+            font-weight: 300;
+        }
+        .tabs {
+            display: flex;
+            gap: 30px;
+            position: relative;
+            bottom: -4px;
+        }
+        .tab {
+            font-size: 16px;
+            font-weight: 300;
+            color: var(--text-gray);
+            cursor: pointer;
+            position: relative;
+            padding-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+        .tab.active {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        .tab-indicator {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 4px;
+            height: 4px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(14px);
+        }
+        .content-area {
+            padding: 18px 14px 14px;
+            display: none;
+            animation: fadeIn 0.35s ease;
+        }
+        .content-area.active {
+            display: grid;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        #view-mine {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .polaroid-card {
+            border: none;
+            width: 100%;
+            background: #fff;
+            border-radius: 8px;
+            padding: 7px 7px 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+            cursor: pointer;
+            text-align: left;
+        }
+        .polaroid-media {
+            position: relative;
+            overflow: hidden;
+            border-radius: 6px;
+            background: #f4f4f4;
+        }
+        .polaroid-media.ratio-square {
+            aspect-ratio: 1 / 1;
+        }
+        .polaroid-media.ratio-4-3 {
+            aspect-ratio: 4 / 3;
+        }
+        .polaroid-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .polaroid-date-badge {
+            position: absolute;
+            right: 6px;
+            bottom: 6px;
+            background: rgba(0, 0, 0, 0.55);
+            color: #fff;
+            border-radius: 10px;
+            padding: 2px 7px;
+            font-size: 10px;
+            line-height: 1.2;
+        }
+        .polaroid-caption {
+            margin-top: 7px;
+            font-size: 11px;
+            color: #8d8d8d;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #view-theirs {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .line-art-card {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border: 1px solid #efefef;
+            border-radius: 4px;
+            background: #fff;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            padding: 4px;
+        }
+        .line-art-icon {
+            width: 26px;
+            height: 26px;
+            stroke: #444;
+            stroke-width: 1.2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .line-art-label {
+            font-size: 10px;
+            color: #666;
+            text-align: center;
+            line-height: 1.25;
+            width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .fab {
+            position: fixed;
+            right: 16px;
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+            width: 56px;
+            height: 56px;
+            border: none;
+            border-radius: 50%;
+            background: var(--accent-color);
+            color: #fff;
+            box-shadow: 0 10px 26px rgba(255, 143, 177, 0.46);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 120;
+            transition: all 0.24s ease;
+        }
+        .fab.theirs-mode {
+            width: 110px;
+            border-radius: 30px;
+            padding: 0 14px;
+        }
+        .fab:active {
+            transform: scale(0.94);
+        }
+        .fab.loading {
+            pointer-events: none;
+        }
+        .fab-icon {
+            font-size: 28px;
+            font-weight: 300;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            transition: opacity 0.22s ease;
+        }
+        .fab.theirs-mode .fab-icon {
+            font-size: 17px;
+            font-weight: 600;
+        }
+        .fab .loader {
+            display: none;
+            width: 22px;
+            height: 22px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            position: absolute;
+        }
+        .fab.loading .fab-icon {
+            opacity: 0;
+        }
+        .fab.loading .loader {
+            display: block;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .modal-overlay, .detail-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 220;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.28s ease;
+        }
+        .modal-overlay.show, .detail-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-content {
+            max-width: 86vw;
+            text-align: center;
+            padding: 24px;
+        }
+        .typewriter-text {
+            font-size: 16px;
+            color: var(--text-dark);
+            line-height: 1.7;
+            border-right: 2px solid var(--text-dark);
+            white-space: nowrap;
+            overflow: hidden;
+            display: inline-block;
+            width: 0;
+        }
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+        @keyframes blink {
+            from, to { border-color: transparent; }
+            50% { border-color: var(--text-dark); }
+        }
+        .detail-sheet {
+            width: min(92vw, 430px);
+            max-height: 88vh;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 12px 34px rgba(0,0,0,0.08);
+            padding: 14px;
+            overflow: auto;
+        }
+        .detail-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .detail-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .detail-close {
+            border: none;
+            background: #f5f5f5;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            font-size: 16px;
+        }
+        .detail-image {
+            width: 100%;
+            border-radius: 8px;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .detail-date {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        .detail-comment {
+            font-size: 14px;
+            color: #333;
+            line-height: 1.65;
+            background: #fafafa;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .empty-tip {
+            font-size: 12px;
+            color: #a0a0a0;
+            grid-column: 1 / -1;
+            padding: 24px 2px 12px;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <nav class="top-nav">
+        <a href="javascript:history.back()" class="back-btn">＜</a>
+        <div class="tabs">
+            <div class="tab active" data-target="view-mine">我的</div>
+            <div class="tab" data-target="view-theirs">对方的</div>
+            <div class="tab-indicator" id="tab-indicator"></div>
+        </div>
+    </nav>
+    <main>
+        <div id="view-mine" class="content-area active"></div>
+        <div id="view-theirs" class="content-area"></div>
+    </main>
+    <button class="fab" id="fab-btn" type="button">
+        <span class="fab-icon" id="fab-icon">+</span>
+        <span class="loader"></span>
+    </button>
+    <input id="mine-upload-input" class="hidden" type="file" accept="image/*" multiple>
+    <div class="modal-overlay" id="modal">
+        <div class="modal-content">
+            <div class="typewriter-text" id="modal-text"></div>
+        </div>
+    </div>
+    <div class="detail-overlay" id="detail-overlay">
+        <div class="detail-sheet">
+            <div class="detail-top">
+                <div class="detail-title">照片详情</div>
+                <button class="detail-close" id="detail-close" type="button">×</button>
+            </div>
+            <img id="detail-image" class="detail-image" alt="detail">
+            <div id="detail-date" class="detail-date"></div>
+            <div id="detail-comment" class="detail-comment"></div>
+        </div>
+    </div>
+    <script>
+        const STORAGE_KEY = 'couple_album_state_v5';
+        const tabs = document.querySelectorAll('.tab');
+        const indicator = document.getElementById('tab-indicator');
+        const mineView = document.getElementById('view-mine');
+        const theirsView = document.getElementById('view-theirs');
+        const fabBtn = document.getElementById('fab-btn');
+        const fabIcon = document.getElementById('fab-icon');
+        const uploadInput = document.getElementById('mine-upload-input');
+        const modal = document.getElementById('modal');
+        const modalText = document.getElementById('modal-text');
+        const detailOverlay = document.getElementById('detail-overlay');
+        const detailCloseBtn = document.getElementById('detail-close');
+        const detailImageEl = document.getElementById('detail-image');
+        const detailDateEl = document.getElementById('detail-date');
+        const detailCommentEl = document.getElementById('detail-comment');
+        const state = { minePhotos: [], theirCards: [] };
+        let currentTab = 'view-mine';
+
+        function getStorageEngine() {
+            try {
+                if (window.localforage && typeof window.localforage.getItem === 'function' && typeof window.localforage.setItem === 'function') {
+                    return window.localforage;
+                }
+            } catch (e) {}
+            return null;
+        }
+
+        async function readState() {
+            const lf = getStorageEngine();
+            if (lf) {
+                try {
+                    const parsed = await lf.getItem(STORAGE_KEY);
+                    const minePhotos = Array.isArray(parsed && parsed.minePhotos) ? parsed.minePhotos : [];
+                    const theirCards = Array.isArray(parsed && parsed.theirCards) ? parsed.theirCards : [];
+                    return { minePhotos, theirCards };
+                } catch (e) {}
+            }
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY) || '';
+                const parsed = raw ? JSON.parse(raw) : {};
+                const minePhotos = Array.isArray(parsed.minePhotos) ? parsed.minePhotos : [];
+                const theirCards = Array.isArray(parsed.theirCards) ? parsed.theirCards : [];
+                return { minePhotos, theirCards };
+            } catch (e) {
+                return { minePhotos: [], theirCards: [] };
+            }
+        }
+
+        async function saveState() {
+            const payload = {
+                minePhotos: Array.isArray(state.minePhotos) ? state.minePhotos : [],
+                theirCards: Array.isArray(state.theirCards) ? state.theirCards : [],
+            };
+            const lf = getStorageEngine();
+            if (lf) {
+                try {
+                    await lf.setItem(STORAGE_KEY, payload);
+                    return true;
+                } catch (e) {}
+            }
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+                return true;
+            } catch (e2) {
+                return false;
+            }
+        }
+
+        function formatDate(ts) {
+            const d = ts ? new Date(ts) : new Date();
+            return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        function safeText(text) {
+            return String(text || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function updateIndicator(activeTab) {
+            const tabRect = activeTab.getBoundingClientRect();
+            const tabsRect = activeTab.parentElement.getBoundingClientRect();
+            const offset = tabRect.left - tabsRect.left + (tabRect.width / 2) - 2;
+            indicator.style.transform = `translateX(${offset}px)`;
+        }
+
+        function getMineCaption(item) {
+            const comment = String(item.comment || '').trim();
+            if (comment) return `AI：${comment}`;
+            return '点击查看详情';
+        }
+
+        function renderMine() {
+            const list = state.minePhotos.slice().sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
+            if (!list.length) {
+                mineView.innerHTML = '<div class="empty-tip">点击右下角 + 上传你的真实照片</div>';
+                return;
+            }
+            mineView.innerHTML = list.map((item) => {
+                const ratioCls = item.ratio === '4:3' ? 'ratio-4-3' : 'ratio-square';
+                return `
+                    <button class="polaroid-card" type="button" data-photo-id="${safeText(item.id)}">
+                        <div class="polaroid-media ${ratioCls}">
+                            <img class="polaroid-img" src="${safeText(item.src)}" alt="my-photo">
+                            <span class="polaroid-date-badge">${safeText(item.date)}</span>
+                        </div>
+                        <div class="polaroid-caption">${safeText(getMineCaption(item))}</div>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function renderTheirs() {
+            const list = state.theirCards.slice().sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
+            if (!list.length) {
+                theirsView.innerHTML = '<div class="empty-tip">点击右下角 ✨ 生成对方的视角</div>';
+                return;
+            }
+            theirsView.innerHTML = list.map((item) => `
+                <button class="line-art-card" type="button" data-theirs-id="${safeText(item.id)}">
+                    <svg class="line-art-icon" viewBox="0 0 24 24">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.6"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    <div class="line-art-label">${safeText(item.brief || '甜蜜片段')}</div>
+                </button>
+            `).join('');
+        }
+
+        function setFabByTab() {
+            if (currentTab === 'view-mine') {
+                fabBtn.classList.remove('theirs-mode');
+                fabIcon.textContent = '+';
+            } else {
+                fabBtn.classList.add('theirs-mode');
+                fabIcon.textContent = '✨ 生成';
+            }
+        }
+
+        async function fileToDataUrl(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result || ''));
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function handleMineUpload(files) {
+            const list = Array.from(files || []).filter((f) => f && f.type && f.type.startsWith('image/'));
+            if (!list.length) return;
+            for (let i = 0; i < list.length; i++) {
+                const src = await fileToDataUrl(list[i]);
+                const now = Date.now();
+                state.minePhotos.push({
+                    id: `mine_${now}_${i}_${Math.random().toString(36).slice(2, 8)}`,
+                    src,
+                    date: formatDate(now),
+                    createdAt: now + i,
+                    ratio: Math.random() > 0.5 ? '1:1' : '4:3',
+                    comment: '',
+                });
+            }
+            renderMine();
+            await saveState();
+        }
+
+        function resolveCallAI() {
+            if (typeof window.callAI === 'function') return window.callAI;
+            try {
+                if (window.parent && window.parent !== window && typeof window.parent.callAI === 'function') return window.parent.callAI;
+            } catch (e) {}
+            return null;
+        }
+
+        function getCurrentRoleId() {
+            let roleId = String(window.currentChatRole || '').trim();
+            if (roleId) return roleId;
+            try {
+                if (window.parent && window.parent !== window) {
+                    roleId = String(window.parent.currentChatRole || '').trim();
+                    if (roleId) return roleId;
+                }
+            } catch (e) {}
+            roleId = String(localStorage.getItem('currentChatId') || '').trim();
+            if (roleId) return roleId;
+            return String(localStorage.getItem('couple_linked_role_id_v1') || '').trim();
+        }
+
+        function readChatHistory(roleId) {
+            const rid = String(roleId || '').trim();
+            if (!rid) return [];
+            try {
+                if (window.parent && window.parent !== window && window.parent.chatData && Array.isArray(window.parent.chatData[rid])) {
+                    return window.parent.chatData[rid].slice();
+                }
+            } catch (e) {}
+            try {
+                const raw = localStorage.getItem('wechat_chatData') || '{}';
+                const parsed = JSON.parse(raw);
+                return parsed && Array.isArray(parsed[rid]) ? parsed[rid].slice() : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function buildShortTermMemory() {
+            const roleId = getCurrentRoleId();
+            const history = readChatHistory(roleId);
+            const lines = [];
+            for (let i = 0; i < history.length; i++) {
+                const msg = history[i];
+                if (!msg || typeof msg !== 'object') continue;
+                const role = String(msg.role || '').trim();
+                if (role !== 'me' && role !== 'ai') continue;
+                const content = String(msg.content || '').replace(/\s+/g, ' ').trim();
+                if (!content) continue;
+                lines.push(`${role === 'me' ? '我' : 'TA'}：${content}`);
+            }
+            if (!lines.length) return '最近聊天较少，偏日常、温柔、亲密。';
+            return lines.slice(-24).join('\n');
+        }
+
+        function extractJsonArray(text) {
+            const raw = String(text || '').trim();
+            if (!raw) return null;
+            const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+            const candidate = fenced && fenced[1] ? fenced[1].trim() : raw;
+            const start = candidate.indexOf('[');
+            const end = candidate.lastIndexOf(']');
+            if (start === -1 || end === -1 || end <= start) return null;
+            const slice = candidate.slice(start, end + 1);
+            try {
+                const parsed = JSON.parse(slice);
+                return Array.isArray(parsed) ? parsed : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function parseAiText(text) {
+            const raw = String(text || '').trim();
+            if (!raw) return '';
+            const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+            const candidate = fenced && fenced[1] ? fenced[1].trim() : raw;
+            const clean = candidate.replace(/^["']|["']$/g, '').trim();
+            return clean || raw;
+        }
+
+        async function askAi(systemPrompt, text, imageBase64) {
+            const callAI = resolveCallAI();
+            if (!callAI) return '';
+            return new Promise((resolve) => {
+                try {
+                    const payload = imageBase64
+                        ? { type: 'image', base64: imageBase64, text }
+                        : { text };
+                    callAI(systemPrompt, [], payload, (reply) => resolve(String(reply || '')), () => resolve(''));
+                } catch (e) {
+                    resolve('');
+                }
+            });
+        }
+
+        async function generateCommentsForMinePhotos() {
+            const list = state.minePhotos.filter((item) => !String(item.comment || '').trim());
+            if (!list.length) return;
+            const systemPrompt = '你是恋爱相册评论助手。你能看到用户上传的真实照片。请只输出一句中文评论，15到30字，温柔甜蜜，不要引号和解释。';
+            for (let i = 0; i < list.length; i++) {
+                const item = list[i];
+                const text = `请基于这张照片写一句恋人视角评论。今天日期是 ${item.date}。`;
+                const reply = await askAi(systemPrompt, text, item.src);
+                item.comment = parseAiText(reply) || '今天也很想把这一刻好好收藏。';
+            }
+            renderMine();
+            await saveState();
+        }
+
+        function fallbackTheirsDescriptions(memoryText) {
+            const snippets = memoryText.split('\n').slice(-4);
+            const s0 = snippets[0] || '你低头看手机时，发丝落在肩上的背影';
+            const s1 = snippets[1] || '你发来的一段聊天截图，结尾有一个爱心表情';
+            const s2 = snippets[2] || '两人聊天置顶页的截屏，时间停在深夜';
+            const s3 = snippets[3] || '你的手机锁屏，备注名后面跟着一个小爱心';
+            return [s0, s1, s2, s3];
+        }
+
+        async function generateTheirsCardsByApi() {
+            const shortMemory = buildShortTermMemory();
+            const systemPrompt = '你是情侣内容创作助手。严格输出 JSON 数组，长度必须是4。每个元素是一句中文，20到36字，描述“对方视角拍下的甜蜜画面”，大部分围绕用户，题材偏背影、聊天截图、锁屏截图。禁止输出数组之外的任何文字。';
+            const userText = `基于这段短期记忆生成四张照片描述：\n${shortMemory}`;
+            const reply = await askAi(systemPrompt, userText, '');
+            const arr = extractJsonArray(reply);
+            const descriptions = arr && arr.length >= 4
+                ? arr.slice(0, 4).map((x) => String(x || '').trim()).filter(Boolean)
+                : fallbackTheirsDescriptions(shortMemory);
+            const now = Date.now();
+            for (let i = 0; i < 4; i++) {
+                const text = descriptions[i] || fallbackTheirsDescriptions(shortMemory)[i];
+                state.theirCards.unshift({
+                    id: `theirs_${now}_${i}_${Math.random().toString(36).slice(2, 8)}`,
+                    text,
+                    brief: text.slice(0, 7),
+                    date: formatDate(now),
+                    createdAt: now + i,
+                });
+            }
+            renderTheirs();
+            await saveState();
+        }
+
+        function showTypewriterModal(text) {
+            const content = String(text || '').trim();
+            if (!content) return;
+            modalText.style.animation = 'none';
+            modalText.style.width = '0';
+            modalText.textContent = content;
+            modal.classList.add('show');
+            setTimeout(() => {
+                const chars = Math.max(8, content.length);
+                modalText.style.animation = `typing ${chars * 0.11}s steps(${chars}, end), blink .75s step-end infinite`;
+                modalText.style.width = '100%';
+            }, 30);
+        }
+
+        function closeModal() {
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modalText.textContent = '';
+                modalText.style.width = '0';
+            }, 220);
+        }
+
+        function openDetailById(id) {
+            const target = state.minePhotos.find((item) => String(item.id) === String(id));
+            if (!target) return;
+            detailImageEl.src = target.src;
+            detailDateEl.textContent = target.date;
+            detailCommentEl.textContent = String(target.comment || '').trim() || 'AI 还在准备这张照片的评论，切到“对方的”点击生成后会自动补齐。';
+            detailOverlay.classList.add('show');
+        }
+
+        function closeDetail() {
+            detailOverlay.classList.remove('show');
+        }
+
+        async function handleGenerateFlow() {
+            if (fabBtn.classList.contains('loading')) return;
+            fabBtn.classList.add('loading');
+            try {
+                await generateCommentsForMinePhotos();
+                await generateTheirsCardsByApi();
+            } finally {
+                fabBtn.classList.remove('loading');
+            }
+        }
+
+        tabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                tabs.forEach((t) => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentTab = tab.getAttribute('data-target');
+                if (currentTab === 'view-mine') {
+                    mineView.classList.add('active');
+                    theirsView.classList.remove('active');
+                } else {
+                    theirsView.classList.add('active');
+                    mineView.classList.remove('active');
+                }
+                updateIndicator(tab);
+                setFabByTab();
+            });
+        });
+
+        fabBtn.addEventListener('click', () => {
+            if (currentTab === 'view-mine') {
+                uploadInput.click();
+            } else {
+                handleGenerateFlow();
+            }
+        });
+
+        uploadInput.addEventListener('change', async (e) => {
+            await handleMineUpload(e.target.files);
+            uploadInput.value = '';
+        });
+
+        mineView.addEventListener('click', (e) => {
+            const card = e.target.closest('[data-photo-id]');
+            if (!card) return;
+            openDetailById(card.getAttribute('data-photo-id'));
+        });
+
+        theirsView.addEventListener('click', (e) => {
+            const card = e.target.closest('[data-theirs-id]');
+            if (!card) return;
+            const id = card.getAttribute('data-theirs-id');
+            const target = state.theirCards.find((item) => String(item.id) === String(id));
+            if (!target) return;
+            showTypewriterModal(target.text);
+        });
+
+        modal.addEventListener('click', closeModal);
+        detailCloseBtn.addEventListener('click', closeDetail);
+        detailOverlay.addEventListener('click', (e) => {
+            if (e.target === detailOverlay) closeDetail();
+        });
+
+        async function initPage() {
+            const loaded = await readState();
+            state.minePhotos = Array.isArray(loaded.minePhotos) ? loaded.minePhotos : [];
+            state.theirCards = Array.isArray(loaded.theirCards) ? loaded.theirCards : [];
+            mineView.classList.add('active');
+            updateIndicator(document.querySelector('.tab.active'));
+            setFabByTab();
+            renderMine();
+            renderTheirs();
+        }
+
+        initPage();
+    </script>
+</body>
+</html>
